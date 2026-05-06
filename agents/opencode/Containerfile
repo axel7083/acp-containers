@@ -17,6 +17,8 @@ RUN /root/.opencode/bin/opencode --version
 # Install the ACP proxy server
 RUN npm install -g @rebornix/stdio-to-ws
 
+ENV HOME=/home
+
 ENTRYPOINT ["/usr/local/bin/stdio-to-ws"]
 CMD ["--no-auth", "/root/.opencode/bin/opencode acp", "--port", "4000"]
 
