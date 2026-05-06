@@ -1,0 +1,70 @@
+name: build-agents
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    outputs:
+      agents: ${{ steps.set-matrix.outputs.agents }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+
+      - name: Discover agents
+        id: set-matrix
+        run: |
+          agents=$(find agents -maxdepth 1 -mindepth 1 -type d -exec basename {} \; | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "agents=${agents}" >> $GITHUB_OUTPUT
+          echo "Found agents: ${agents}"
+
+  build:
+    needs: discover
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: ${{ fromJson(needs.discover.outputs.agents) }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+
+      - name: Log in to ghcr.io
+        uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603 #v1.7
+        with:
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+
+      - name: Build Image
+        id: build-image
+        uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 #v2.13
+        with:
+          image: ${{ github.repository }}/agents/${{ matrix.agent }}
+          tags: |
+            next
+            ${{ github.sha }}
+          context: ./agents/${{ matrix.agent }}
+          containerfiles: ./agents/${{ matrix.agent }}/Containerfile
+
+      - name: Push Image
+        uses: redhat-actions/push-to-registry@5ed88d269cf581ea9ef6dd6806d01562096bee9c #v2.8
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          tags: ${{ steps.build-image.outputs.tags }}
+          registry: ghcr.io
