@@ -1,5 +1,10 @@
 FROM registry.fedoraproject.org/fedora:latest
 
+USER root
+
+# ensure home exists and is writable
+RUN mkdir -p $HOME
+
 # Install ripgrep (required for opencode)
 RUN curl -LO https://github.com/BurntSushi/ripgrep/releases/download/15.1.0/ripgrep-15.1.0-x86_64-unknown-linux-musl.tar.gz \
  && tar -xzf ripgrep-15.1.0-x86_64-unknown-linux-musl.tar.gz
@@ -18,6 +23,11 @@ RUN /root/.opencode/bin/opencode --version
 RUN npm install -g @rebornix/stdio-to-ws
 
 ENV HOME=/home
+# ensure home exists and is writable
+RUN chown -R 65532:65532 $HOME && chmod -R u+rwx $HOME
+
+USER 65532
+
 
 ENTRYPOINT ["/usr/local/bin/stdio-to-ws"]
 CMD ["--no-auth", "/root/.opencode/bin/opencode acp", "--port", "4000"]
