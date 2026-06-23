@@ -13,18 +13,19 @@ ARG NODE_VERSION=24
 
 RUN dnf install -y git nodejs$NODE_VERSION
 
-# set npm prefix to avoid permission issues
-RUN npm config set prefix "$HOME/.npm-global"
-ENV PATH="$HOME/.npm-global/bin:$PATH"
-
 # Install Opencode
-# RUN curl -fsSL https://opencode.ai/install | bash
+RUN curl -fsSL https://opencode.ai/install | bash
 RUN /root/.opencode/bin/opencode --version
 
 # Install the ACP proxy server
 RUN npm install -g @rebornix/stdio-to-ws
 
 ENV HOME=/home
+
+# set npm prefix to avoid permission issues
+RUN npm config set prefix "$HOME/.npm-global"
+ENV PATH="$HOME/.npm-global/bin:$PATH"
+
 # ensure home exists and is writable
 RUN chown -R 65532:65532 $HOME && chmod -R u+rwx $HOME
 
