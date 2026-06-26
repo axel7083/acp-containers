@@ -32,5 +32,5 @@ RUN chown -R 65532:65532 $HOME && chmod -R u+rwx $HOME
 USER 65532
 
 ENTRYPOINT ["/usr/local/bin/acp-stdio-to-ws"]
-CMD ["--no-auth", "/root/.opencode/bin/opencode acp", "--port", "4000"]
+CMD ["--port=4000", "/root/.opencode/bin/opencode acp"]
 
